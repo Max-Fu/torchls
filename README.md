@@ -104,6 +104,69 @@ print("\nRecovered delta (local_coordinates(T1, T2)):\n", delta_recovered)
 assert torch.allclose(delta_recovered.squeeze(0), delta_for_T2, atol=1e-6)
 ```
 
+### Defining Residuals with `inverse` and `compose`
+
+The `SE3Variable` class now includes `inverse()` and `compose()` methods that operate on SE(3) transformation tensors and are fully differentiable. This allows for more expressive definitions of geometric residuals in your custom `Cost` functions.
+
+Here's an example of a `Cost` function for a relative pose error. Assume we have two poses, `pose1` and `pose2`, and a measured transformation `T_1_meas_2` from `pose1` to `pose2`.
+
+```python
+import torch
+from torchls.variables import SE3Variable, Variable # For type hints
+from torchls.core import Cost
+from torchls.lie_math import se3_log_map # For converting SE(3) matrix to tangent vector
+from torchls.utils.misc import DEVICE, DEFAULT_DTYPE
+
+class RelativePoseErrorCost(Cost):
+    def __init__(self, 
+                 pose1_var: SE3Variable, 
+                 pose2_var: SE3Variable, 
+                 measured_pose1_T_pose2: torch.Tensor, # Shape (1,4,4) or (4,4)
+                 name: str = "RelativePoseErrorCost"):
+        super().__init__(variables=[pose1_var, pose2_var], name=name)
+        self.measured_pose1_T_pose2 = measured_pose1_T_pose2.to(device=DEVICE, dtype=DEFAULT_DTYPE)
+        # Ensure it's (1,4,4) for consistent batch operations if it was (4,4)
+        if self.measured_pose1_T_pose2.ndim == 2:
+            self.measured_pose1_T_pose2 = self.measured_pose1_T_pose2.unsqueeze(0)
+        
+        # We can use any SE3Variable instance to access inverse/compose, e.g., pose1_var
+        self._se3_helper = pose1_var 
+
+    def residual(self, var_values: dict[Variable, torch.Tensor]) -> torch.Tensor:
+        # Get current tensor values for pose1 and pose2
+        # var_values keys are the actual SE3Variable instances used in __init__
+        current_pose1_tensor = var_values[self.variables[0]] # (1,4,4)
+        current_pose2_tensor = var_values[self.variables[1]] # (1,4,4)
+
+        # 1. Calculate the inverse of the current pose1
+        # T_world_inv_pose1 = pose1_tensor.inverse()
+        current_pose1_inv_tensor = self._se3_helper.inverse(current_pose1_tensor)
+
+        # 2. Calculate the estimated transformation from pose1 to pose2
+        # T_est_pose1_T_pose2 = T_world_inv_pose1 @ pose2_tensor
+        est_pose1_T_pose2 = self._se3_helper.compose(current_pose1_inv_tensor, current_pose2_tensor)
+
+        # 3. Calculate the error matrix: Measured @ Estimated.inverse()
+        #    log( T_measured @ T_estimated_relative.inverse() ) should be zero
+        est_pose1_T_pose2_inv = self._se3_helper.inverse(est_pose1_T_pose2)
+        error_matrix = self._se3_helper.compose(self.measured_pose1_T_pose2, est_pose1_T_pose2_inv)
+
+        # 4. Convert the error matrix to a tangent space vector (the residual)
+        # se3_log_map returns (1,6) for (1,4,4) input
+        residual_vector = se3_log_map(error_matrix)
+        return residual_vector.squeeze(0) # Return shape (6,)
+
+# Example of how you might use this cost (solver setup omitted for brevity):
+# pose1 = SE3Variable(name="RobotPose1")
+# pose2 = SE3Variable(name="RobotPose2")
+# measurement_params = torch.tensor([0.5, 0.1, -0.2, 0.0, 0.0, 0.1], device=DEVICE, dtype=DEFAULT_DTYPE)
+# T_1_meas_2 = se3_exp_map(measurement_params) # (1,4,4)
+
+# rel_pose_cost = RelativePoseErrorCost(pose1, pose2, T_1_meas_2)
+# problem = LeastSquaresProblem(costs=[rel_pose_cost, ...other costs...])
+# # ... then solve with GaussNewtonSolver or LevenbergMarquardtSolver ...
+```
+
 ### 4. Example: Gauss-Newton Solver
 
 This example demonstrates how to use the `GaussNewtonSolver` to estimate an SE(3) pose that matches a target pose.

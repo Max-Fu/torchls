@@ -177,7 +177,56 @@ class SE3Variable(LieGroupVariable):
         if not input_v1_batched and not input_v2_batched and log_map_result.shape[0] == 1:
             return log_map_result.squeeze(0)
         return log_map_result
-    
+
+    def inverse(self, T_val: torch.Tensor) -> torch.Tensor:
+        """
+        Computes the SE(3) inverse of a given SE(3) transformation tensor.
+        Handles both batched (B,4,4) and unbatched (4,4) inputs.
+
+        Args:
+            T_val (torch.Tensor): The SE(3) transformation matrix (or batch of matrices).
+                                  Shape (..., 4, 4).
+
+        Returns:
+            torch.Tensor: The inverse SE(3) transformation matrix (or batch).
+                          Shape matches input.
+        """
+        if T_val.ndim < 2 or T_val.shape[-2:] != (4, 4):
+            raise ValueError(f"Input tensor must be of shape (..., 4, 4), got {T_val.shape}")
+
+        R = T_val[..., :3, :3]
+        t = T_val[..., :3, 3:4] # Keep last dim for matmul compatibility
+
+        R_inv = R.transpose(-2, -1)
+        t_inv = -torch.matmul(R_inv, t)
+
+        # Construct the inverse matrix
+        inv_T_val = torch.zeros_like(T_val)
+        inv_T_val[..., :3, :3] = R_inv
+        inv_T_val[..., :3, 3:4] = t_inv
+        inv_T_val[..., 3, 3] = 1.0
+        return inv_T_val
+
+    def compose(self, T1_val: torch.Tensor, T2_val: torch.Tensor) -> torch.Tensor:
+        """
+        Composes (multiplies) two SE(3) transformation tensors.
+        T_new = T1_val @ T2_val
+
+        Args:
+            T1_val (torch.Tensor): The first SE(3) transformation matrix (or batch). Shape (..., 4, 4).
+            T2_val (torch.Tensor): The second SE(3) transformation matrix (or batch). Shape (..., 4, 4).
+                                   Batch dimensions must be compatible for matmul.
+
+        Returns:
+            torch.Tensor: The composed SE(3) transformation matrix (or batch).
+        """
+        if T1_val.ndim < 2 or T1_val.shape[-2:] != (4, 4):
+            raise ValueError(f"Input T1_val must be of shape (..., 4, 4), got {T1_val.shape}")
+        if T2_val.ndim < 2 or T2_val.shape[-2:] != (4, 4):
+            raise ValueError(f"Input T2_val must be of shape (..., 4, 4), got {T2_val.shape}")
+            
+        return torch.matmul(T1_val, T2_val)
+
     @classmethod
     def identity(cls, batch_size: Optional[Union[int, Tuple]] = None) -> torch.Tensor:
         """

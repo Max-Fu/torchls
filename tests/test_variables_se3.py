@@ -193,5 +193,115 @@ class TestSE3Variable(unittest.TestCase):
         # import pdb; pdb.set_trace()
         self.assertTrue(torch.allclose(delta_update_batched, delta_recovered_3, atol=1e-6))
 
+    def test_inverse_method(self):
+        """Test the SE3Variable.inverse() method."""
+        var = SE3Variable() # Helper instance
+
+        # 1. Inverse of identity (4,4)
+        T_identity_4x4 = self.identity_mat_4x4
+        inv_T_identity_4x4 = var.inverse(T_identity_4x4)
+        self.assertEqual(inv_T_identity_4x4.shape, (4,4))
+        self.assertTrue(torch.allclose(inv_T_identity_4x4, self.identity_mat_4x4, atol=1e-7))
+
+        # 2. Inverse of identity (1,4,4)
+        T_identity_1x4x4 = self.identity_batch_1x4x4
+        inv_T_identity_1x4x4 = var.inverse(T_identity_1x4x4)
+        self.assertEqual(inv_T_identity_1x4x4.shape, (1,4,4))
+        self.assertTrue(torch.allclose(inv_T_identity_1x4x4, self.identity_batch_1x4x4, atol=1e-7))
+
+        # 3. Inverse of a single non-identity SE(3) matrix (input 1,4,4, check result is 1,4,4)
+        # self.T1_4x4 is already (1,4,4)
+        T_known_1x4x4 = self.T1_4x4 
+        inv_T_known_1x4x4 = var.inverse(T_known_1x4x4)
+        # Check T @ T_inv = Identity
+        recomposed_identity_1 = torch.matmul(T_known_1x4x4, inv_T_known_1x4x4)
+        self.assertTrue(torch.allclose(recomposed_identity_1, self.identity_batch_1x4x4, atol=1e-6))
+        self.assertEqual(inv_T_known_1x4x4.shape, T_known_1x4x4.shape)
+
+        # 4. Inverse of a single non-identity SE(3) matrix (input 4,4, check result is 4,4)
+        T_known_4x4 = self.T1_4x4.squeeze(0)
+        inv_T_known_4x4 = var.inverse(T_known_4x4)
+        recomposed_identity_2 = torch.matmul(T_known_4x4, inv_T_known_4x4)
+        self.assertTrue(torch.allclose(recomposed_identity_2, self.identity_mat_4x4, atol=1e-6))
+        self.assertEqual(inv_T_known_4x4.shape, T_known_4x4.shape)
+
+        # 5. Inverse of a batch of SE(3) matrices (B,4,4)
+        T_batch_B44 = se3_exp_map(self.delta_batch_2x6) # (2,4,4)
+        inv_T_batch_B44 = var.inverse(T_batch_B44)
+        recomposed_identity_batch = torch.matmul(T_batch_B44, inv_T_batch_B44)
+        expected_identity_batch = SE3Variable.identity(batch_size=T_batch_B44.shape[0]) # (2,4,4) of identities
+        self.assertTrue(torch.allclose(recomposed_identity_batch, expected_identity_batch, atol=1e-6))
+        self.assertEqual(inv_T_batch_B44.shape, T_batch_B44.shape)
+
+        # 6. Test inverse(inverse(T)) = T
+        inv_inv_T_known_1x4x4 = var.inverse(inv_T_known_1x4x4)
+        self.assertTrue(torch.allclose(inv_inv_T_known_1x4x4, T_known_1x4x4, atol=1e-6))
+
+        inv_inv_T_batch_B44 = var.inverse(inv_T_batch_B44)
+        self.assertTrue(torch.allclose(inv_inv_T_batch_B44, T_batch_B44, atol=1e-6))
+
+    def test_compose_method(self):
+        """Test the SE3Variable.compose() method."""
+        var = SE3Variable() # Helper instance
+
+        T_id_1x4x4 = self.identity_batch_1x4x4
+        T_id_4x4 = self.identity_mat_4x4
+        
+        # self.T1_4x4 is (1,4,4), self.T2_4x4 is (1,4,4)
+        T1_val = self.T1_4x4 
+        T2_val = self.T2_4x4 
+
+        # 1. Compose T1 with T2 (both 1,4,4)
+        composed_T1_T2 = var.compose(T1_val, T2_val)
+        expected_T1_T2 = torch.matmul(T1_val, T2_val)
+        self.assertTrue(torch.allclose(composed_T1_T2, expected_T1_T2, atol=1e-7))
+        self.assertEqual(composed_T1_T2.shape, (1,4,4))
+
+        # 2. Compose T1 (1,4,4) with T_id (1,4,4)
+        composed_T1_Id = var.compose(T1_val, T_id_1x4x4)
+        self.assertTrue(torch.allclose(composed_T1_Id, T1_val, atol=1e-7))
+
+        # 3. Compose T_id (1,4,4) with T1 (1,4,4)
+        composed_Id_T1 = var.compose(T_id_1x4x4, T1_val)
+        self.assertTrue(torch.allclose(composed_Id_T1, T1_val, atol=1e-7))
+
+        # 4. Compose T1 (squeezed to 4,4) with T2 (squeezed to 4,4)
+        T1_val_4x4 = T1_val.squeeze(0)
+        T2_val_4x4 = T2_val.squeeze(0)
+        composed_4x4 = var.compose(T1_val_4x4, T2_val_4x4)
+        expected_4x4 = torch.matmul(T1_val_4x4, T2_val_4x4)
+        self.assertTrue(torch.allclose(composed_4x4, expected_4x4, atol=1e-7))
+        self.assertEqual(composed_4x4.shape, (4,4))
+
+        # 5. Compose T_id (4,4) with T1 (squeezed to 4,4)
+        composed_Id4x4_T1_4x4 = var.compose(T_id_4x4, T1_val_4x4)
+        self.assertTrue(torch.allclose(composed_Id4x4_T1_4x4, T1_val_4x4, atol=1e-7))
+
+        # 6. Batched composition
+        # T_batch_A: (2,4,4), T_batch_B: (2,4,4)
+        T_batch_A = se3_exp_map(self.delta_batch_2x6) # (2,4,4)
+        delta_batch_alt = torch.stack([
+            torch.tensor([0.01, 0.02, 0.03, 0.1, 0.2, 0.3], device=DEVICE, dtype=DEFAULT_DTYPE),
+            torch.tensor([-0.03, -0.01, -0.02, -0.3, -0.1, -0.2], device=DEVICE, dtype=DEFAULT_DTYPE)
+        ])
+        T_batch_B = se3_exp_map(delta_batch_alt) # (2,4,4)
+        composed_batch = var.compose(T_batch_A, T_batch_B)
+        expected_batch_composed = torch.matmul(T_batch_A, T_batch_B)
+        self.assertTrue(torch.allclose(composed_batch, expected_batch_composed, atol=1e-7))
+        self.assertEqual(composed_batch.shape, (2,4,4))
+
+        # 7. Broadcasting: T1_val (1,4,4) and T_batch_B (2,4,4)
+        # torch.matmul will broadcast T1_val to (2,4,4)
+        composed_broadcast1 = var.compose(T1_val, T_batch_B)
+        expected_broadcast1 = torch.matmul(T1_val, T_batch_B)
+        self.assertTrue(torch.allclose(composed_broadcast1, expected_broadcast1, atol=1e-7))
+        self.assertEqual(composed_broadcast1.shape, (2,4,4))
+
+        # 8. Broadcasting: T_batch_A (2,4,4) and T2_val (1,4,4)
+        composed_broadcast2 = var.compose(T_batch_A, T2_val)
+        expected_broadcast2 = torch.matmul(T_batch_A, T2_val)
+        self.assertTrue(torch.allclose(composed_broadcast2, expected_broadcast2, atol=1e-7))
+        self.assertEqual(composed_broadcast2.shape, (2,4,4))
+
 if __name__ == '__main__':
     unittest.main() 
