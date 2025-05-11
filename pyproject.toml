@@ -1,0 +1,82 @@
+ [build-system]
+requires = ["setuptools>=61.0", "wheel"] # Added wheel as it's standard
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "torchls"
+version = "0.0.1" # Initial version
+authors = [
+  { name="Max Fu", email="max.fu.letian@berkeley.edu" }, # Replace with your details
+]
+description = "A PyTorch library for non-linear least squares optimization, with a focus on problems involving Lie groups."
+readme = "README.md"
+requires-python = ">=3.12"
+keywords = ["pytorch", "torch", "optimization", "least-squares", "lie-groups", "robotics", "computer-vision", "factor-graph", "nlls"]
+
+dependencies = [
+    "torch>2.0", 
+    "tyro",
+    "viser"
+    # "numpy", # PyTorch depends on NumPy, so it's often implicitly installed.
+               # Explicitly listing it can be good if you use NumPy features not guaranteed by torch's version.
+]
+
+[project.urls]
+Homepage = "https://github.com/yourusername/torchls" # Replace with your actual repo URL
+Repository = "https://github.com/yourusername/torchls"
+# Bug Tracker = "https://github.com/yourusername/torchls/issues"
+
+# Optional dependencies for developers, testing, examples, etc.
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",      # For running tests
+    "ruff>=0.1",        # For linting and formatting
+    "mypy>=1.0",        # For static type checking
+    "pre-commit>=3.0",  # For running checks before commits
+    # "build",          # For building packages locally (python -m build)
+    # "twine",          # For uploading packages to PyPI
+]
+examples = [
+    # "matplotlib", # If your examples use plotting
+]
+
+# Configuration for setuptools to find your package in the src directory
+[tool.setuptools.packages.find]
+where = ["src"]
+# include = ["torchls*"] # You can be more explicit if needed
+# exclude = ["tests*"]   # Usually tests are not included in the wheel
+
+# Configuration for Ruff (linter and formatter)
+[tool.ruff]
+line-length = 100
+target-version = "py312" # Target Python 3.12 for ruff
+
+[tool.ruff.lint]
+select = [
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings
+    "F",  # pyflakes
+    "I",  # isort (import sorting)
+    "C",  # flake8-comprehensions
+    "B",  # flake8-bugbear
+    "UP", # pyupgrade (helps modernize syntax)
+    "ASYNC", # flake8-async
+    "T20", # flake8-print (T201 for print, T203 for pprint) - useful to avoid accidental prints in library code
+]
+ignore = [
+    "E501", # Line too long, ruff format handles this
+    # "B008", # Function call argument default value is mutable (sometimes intended)
+]
+# fixable = ["ALL"] # If you want ruff to try to fix everything it can
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+
+# Configuration for Mypy (static type checker)
+[tool.mypy]
+python_version = "3.12"
+warn_return_any = true
+warn_unused_configs = true

@@ -1,0 +1,11 @@
+torch>2.0
+tyro
+viser
+
+[dev]
+pytest>=7.0
+ruff>=0.1
+mypy>=1.0
+pre-commit>=3.0
+
+[examples]

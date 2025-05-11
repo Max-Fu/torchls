@@ -1,0 +1,23 @@
+Metadata-Version: 2.4
+Name: torchls
+Version: 0.0.1
+Summary: A PyTorch library for non-linear least squares optimization, with a focus on problems involving Lie groups.
+Author-email: Max Fu <max.fu.letian@berkeley.edu>
+Project-URL: Homepage, https://github.com/yourusername/torchls
+Project-URL: Repository, https://github.com/yourusername/torchls
+Keywords: pytorch,torch,optimization,least-squares,lie-groups,robotics,computer-vision,factor-graph,nlls
+Requires-Python: >=3.12
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: torch>2.0
+Requires-Dist: tyro
+Requires-Dist: viser
+Provides-Extra: dev
+Requires-Dist: pytest>=7.0; extra == "dev"
+Requires-Dist: ruff>=0.1; extra == "dev"
+Requires-Dist: mypy>=1.0; extra == "dev"
+Requires-Dist: pre-commit>=3.0; extra == "dev"
+Provides-Extra: examples
+Dynamic: license-file
+
+ 
