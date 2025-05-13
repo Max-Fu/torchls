@@ -6,7 +6,7 @@ class TestSparseCsrMatrix(unittest.TestCase):
 
     def setUp(self):
         """Set up common data for tests."""
-        self.v = torch.tensor([1.0, 2.0, 3.0, 4.0, 5.0], dtype=torch.float32)
+        self.v = torch.tensor([1.0, 2.0, 3.0, 4.0, 5.0], dtype=torch.float64)
         self.ci = torch.tensor([0, 2, 1, 0, 2], dtype=torch.long) # col_indices
         self.cr = torch.tensor([0, 2, 3, 5], dtype=torch.long)    # crow_indices
         self.s = (3, 4) # num_rows = 3, num_cols = 4
@@ -14,10 +14,10 @@ class TestSparseCsrMatrix(unittest.TestCase):
             [1.0, 0.0, 2.0, 0.0],
             [0.0, 3.0, 0.0, 0.0],
             [4.0, 0.0, 5.0, 0.0]
-        ], dtype=torch.float32)
+        ], dtype=torch.float64)
 
         # Data for creating from torch sparse tensor
-        v_alt = torch.tensor([10., 20., 30., 40., 50.], dtype=torch.float32)
+        v_alt = torch.tensor([10., 20., 30., 40., 50.], dtype=torch.float64)
         ci_alt = torch.tensor([0, 2, 1, 0, 2], dtype=torch.long)
         cr_alt = torch.tensor([0, 2, 3, 5], dtype=torch.long)
         s_alt = (3, 4)
@@ -26,7 +26,7 @@ class TestSparseCsrMatrix(unittest.TestCase):
             [10.0, 0.0, 20.0, 0.0],
             [0.0, 30.0, 0.0, 0.0],
             [40.0, 0.0, 50.0, 0.0]
-        ], dtype=torch.float32)
+        ], dtype=torch.float64)
 
     def test_csr_matrix_creation(self):
         """Tests basic creation of SparseCsrMatrix."""
@@ -108,7 +108,7 @@ class TestSparseCsrMatrix(unittest.TestCase):
         """Tests handling of empty SparseCsrMatrix."""
         # 0x0 matrix
         empty_csr_0x0 = SparseCsrMatrix(
-            values=torch.empty(0, dtype=torch.float32),
+            values=torch.empty(0, dtype=torch.float64),
             col_indices=torch.empty(0, dtype=torch.long),
             crow_indices=torch.tensor([0], dtype=torch.long), # num_rows=0 -> len=1
             shape=(0,0)
@@ -117,7 +117,7 @@ class TestSparseCsrMatrix(unittest.TestCase):
         self.assertEqual(empty_csr_0x0.shape, (0,0))
         dense_0x0 = empty_csr_0x0.to_dense()
         self.assertEqual(dense_0x0.shape, (0,0))
-        self.assertEqual(dense_0x0.dtype, torch.float32)
+        self.assertEqual(dense_0x0.dtype, torch.float64)
 
         torch_sparse_0x0 = empty_csr_0x0.to_torch_sparse_csr()
         self.assertTrue(torch_sparse_0x0.is_sparse_csr)
@@ -145,7 +145,7 @@ class TestSparseCsrMatrix(unittest.TestCase):
         empty_torch_csr = torch.sparse_csr_tensor(
             torch.tensor([0,0,0], dtype=torch.long), # crow_indices for 2 rows
             torch.empty((0), dtype=torch.long),      # col_indices
-            torch.empty((0), dtype=torch.float32),   # values
+            torch.empty((0), dtype=torch.float64),   # values
             size=(2,3)
         )
         csr_from_empty_torch = SparseCsrMatrix.from_torch_sparse_csr(empty_torch_csr)

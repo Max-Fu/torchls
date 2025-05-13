@@ -171,3 +171,43 @@ def se3_log_map(T: torch.Tensor) -> torch.Tensor:
     log_map_output = torch.cat((trans, omega), dim=-1) # (B,6)
 
     return log_map_output.squeeze(0) if input_was_unbatched else log_map_output
+
+def quaternion_to_rotation_matrix(
+    q: torch.Tensor,
+) -> torch.Tensor:
+    """
+    Convert quaternion(s) [w, x, y, z] to rotation matrix(ices).
+
+    Args:
+        q: Tensor of shape (..., 4) representing quaternion(s) [w, x, y, z].
+    Returns:
+        Tensor of shape (..., 3, 3) corresponding rotation matrix(ices).
+    """
+    # Normalize quaternion
+    q_norm = q / torch.linalg.norm(q, dim=-1, keepdim=True)
+    w, x, y, z = q_norm.unbind(dim=-1)
+    # Precompute terms
+    ww = w * w
+    xx = x * x
+    yy = y * y
+    zz = z * z
+    wx = w * x
+    wy = w * y
+    wz = w * z
+    xy = x * y
+    xz = x * z
+    yz = y * z
+    # Construct rotation matrix elements
+    m00 = ww + xx - yy - zz
+    m01 = 2 * (xy - wz)
+    m02 = 2 * (xz + wy)
+    m10 = 2 * (xy + wz)
+    m11 = ww - xx + yy - zz
+    m12 = 2 * (yz - wx)
+    m20 = 2 * (xz - wy)
+    m21 = 2 * (yz + wx)
+    m22 = ww - xx - yy + zz
+    return torch.stack(
+        [m00, m01, m02, m10, m11, m12, m20, m21, m22],
+        dim=-1,
+    ).reshape(*q.shape[:-1], 3, 3)

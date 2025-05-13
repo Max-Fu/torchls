@@ -6,7 +6,7 @@ class TestSparseCooMatrix(unittest.TestCase):
 
     def setUp(self):
         """Set up common data for tests."""
-        self.v = torch.tensor([1.0, 2.0, 3.0, 4.0, 5.0], dtype=torch.float32)
+        self.v = torch.tensor([1.0, 2.0, 3.0, 4.0, 5.0], dtype=torch.float64)
         self.r = torch.tensor([0, 0, 1, 2, 2], dtype=torch.long)
         self.c = torch.tensor([0, 2, 1, 0, 2], dtype=torch.long)
         self.s = (3, 4)
@@ -14,18 +14,18 @@ class TestSparseCooMatrix(unittest.TestCase):
             [1.0, 0.0, 2.0, 0.0],
             [0.0, 3.0, 0.0, 0.0],
             [4.0, 0.0, 5.0, 0.0]
-        ], dtype=torch.float32)
+        ], dtype=torch.float64)
 
         # Data for creating from torch sparse tensor
         indices_torch = torch.tensor([[0, 0, 1, 2, 2], [0, 2, 1, 0, 2]], dtype=torch.long)
-        values_torch = torch.tensor([10., 20., 30., 40., 50.], dtype=torch.float32)
+        values_torch = torch.tensor([10., 20., 30., 40., 50.], dtype=torch.float64)
         shape_torch = (3, 4)
         self.torch_sparse_tensor_alt = torch.sparse_coo_tensor(indices_torch, values_torch, shape_torch).coalesce()
         self.expected_dense_alt = torch.tensor([
             [10.0, 0.0, 20.0, 0.0],
             [0.0, 30.0, 0.0, 0.0],
             [40.0, 0.0, 50.0, 0.0]
-        ], dtype=torch.float32)
+        ], dtype=torch.float64)
 
     def test_coo_matrix_creation(self):
         """Tests basic creation of SparseCooMatrix."""
@@ -101,7 +101,7 @@ class TestSparseCooMatrix(unittest.TestCase):
 
         # Test with non-coalesced tensor for from_torch_sparse_coo (it should coalesce it)
         indices_non_coalesced = torch.tensor([[0, 0, 0], [0, 1, 0]], dtype=torch.long)
-        values_non_coalesced = torch.tensor([1.0, 2.0, 3.0], dtype=torch.float32)
+        values_non_coalesced = torch.tensor([1.0, 2.0, 3.0], dtype=torch.float64)
         shape_non_coalesced = (2,2)
         torch_sparse_non_coalesced = torch.sparse_coo_tensor(indices_non_coalesced, values_non_coalesced, shape_non_coalesced)
         coo_from_non_coalesced = SparseCooMatrix.from_torch_sparse_coo(torch_sparse_non_coalesced)
@@ -117,7 +117,7 @@ class TestSparseCooMatrix(unittest.TestCase):
     def test_empty_coo_matrix(self):
         """Tests handling of empty SparseCooMatrix."""
         empty_coo = SparseCooMatrix(
-            values=torch.empty(0, dtype=torch.float32),
+            values=torch.empty(0, dtype=torch.float64),
             row_indices=torch.empty(0, dtype=torch.long),
             col_indices=torch.empty(0, dtype=torch.long),
             shape=(5,5)
@@ -126,16 +126,16 @@ class TestSparseCooMatrix(unittest.TestCase):
         self.assertEqual(empty_coo.row_indices.numel(), 0)
         self.assertEqual(empty_coo.col_indices.numel(), 0)
         self.assertEqual(empty_coo.shape, (5,5))
-        self.assertTrue(torch.equal(empty_coo.to_dense(), torch.zeros(5,5, dtype=torch.float32)))
+        self.assertTrue(torch.equal(empty_coo.to_dense(), torch.zeros(5,5, dtype=torch.float64)))
         
         torch_sparse_empty = empty_coo.to_torch_sparse_coo()
         self.assertEqual(torch_sparse_empty.layout, torch.sparse_coo)
         self.assertEqual(torch_sparse_empty._nnz(), 0)
         self.assertEqual(tuple(torch_sparse_empty.shape), (5,5))
-        self.assertTrue(torch.equal(torch_sparse_empty.to_dense(), torch.zeros(5,5, dtype=torch.float32)))
+        self.assertTrue(torch.equal(torch_sparse_empty.to_dense(), torch.zeros(5,5, dtype=torch.float64)))
 
         # Test from_torch_sparse_coo with an empty sparse tensor
-        empty_torch_coo = torch.sparse_coo_tensor(size=(3,3), dtype=torch.float32) # nnz = 0
+        empty_torch_coo = torch.sparse_coo_tensor(size=(3,3), dtype=torch.float64) # nnz = 0
         coo_from_empty_torch = SparseCooMatrix.from_torch_sparse_coo(empty_torch_coo)
         self.assertEqual(coo_from_empty_torch.values.numel(), 0)
         self.assertEqual(coo_from_empty_torch.shape, (3,3))

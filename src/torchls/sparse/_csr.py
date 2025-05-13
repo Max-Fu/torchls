@@ -193,7 +193,7 @@ if __name__ == '__main__':
 
     # Example of an empty sparse matrix (0x0)
     empty_csr_0x0 = SparseCsrMatrix(
-        values=torch.empty(0, dtype=torch.float32),
+        values=torch.empty(0, dtype=torch.float64),
         col_indices=torch.empty(0, dtype=torch.long),
         crow_indices=torch.tensor([0], dtype=torch.long),
         shape=(0,0)
@@ -204,7 +204,7 @@ if __name__ == '__main__':
 
     # Example of an empty sparse matrix (3x4 with 0 nnz)
     empty_csr_3x4_nnz0 = SparseCsrMatrix(
-        values=torch.empty(0, dtype=torch.float32),
+        values=torch.empty(0, dtype=torch.float64),
         col_indices=torch.empty(0, dtype=torch.long),
         crow_indices=torch.tensor([0, 0, 0, 0], dtype=torch.long), # num_rows = 3 -> len = 4
         shape=(3,4)
