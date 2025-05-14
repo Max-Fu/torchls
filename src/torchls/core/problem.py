@@ -104,6 +104,7 @@ class LeastSquaresProblem:
                  pass 
         return values
 
+    @torch.compile
     def update_values(self, current_values: Dict[Variable, torch.Tensor], delta_tangent: torch.Tensor) -> Dict[Variable, torch.Tensor]:
         """
         Updates the values of Lie group variables given a tangent space update vector.
@@ -132,6 +133,7 @@ class LeastSquaresProblem:
                     pass 
         return new_values
 
+    @torch.compile
     def build_system(self, current_values: Dict[Variable, torch.Tensor]) -> Tuple[torch.Tensor, torch.Tensor, float]:
         """
         Constructs the Gauss-Newton system (JTJ * dx = -JTr) and calculates the total cost.

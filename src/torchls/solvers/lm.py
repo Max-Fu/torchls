@@ -19,6 +19,7 @@ class LevenbergMarquardtSolver:
         self.problem = problem
         self.options = options if options else SolverOptions()
 
+    @torch.compile
     def solve(self) -> Dict[Variable, torch.Tensor]:
         """
         Executes the Levenberg-Marquardt optimization algorithm.

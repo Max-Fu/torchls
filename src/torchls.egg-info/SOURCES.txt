@@ -1,4 +1,3 @@
-LICENSE
 README.md
 pyproject.toml
 src/torchls/__init__.py
@@ -17,12 +16,16 @@ src/torchls/solvers/gauss_newton.py
 src/torchls/solvers/lm.py
 src/torchls/solvers/options.py
 src/torchls/sparse/__init__.py
+src/torchls/sparse/_coo.py
+src/torchls/sparse/_csr.py
 src/torchls/utils/__init__.py
 src/torchls/utils/misc.py
 src/torchls/variables/__init__.py
 src/torchls/variables/base.py
 src/torchls/variables/lie_groups.py
+tests/test_coo.py
 tests/test_core_problem.py
+tests/test_csr.py
 tests/test_lie_math_se3.py
 tests/test_solvers.py
 tests/test_variables_se3.py

@@ -12,6 +12,12 @@ cd torchls
 pip install -e .
 ```
 
+## Small benchmark 
+Install jaxls first, then you can run the following simple benchmark to compare against jaxls. 
+```bash
+python examples/benchmark_regression.py --use_vectorized --use_optimized
+```
+
 ## Usage Examples
 
 Here are a few examples of how to use the `SE3Variable` from the `torchls` package.
